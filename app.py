@@ -1,9 +1,9 @@
 """
-Optimized Cassava Disease Detector - Enhanced Features
-======================================================
-- Clickable history items that show analysis results
-- Tips section on homepage
-- Improved navigation and UI
+Optimized Cassava Disease Detector - Final Features
+==================================================
+- Fixed history item click functionality
+- Horizontal layout for tips header
+- Improved mobile UI
 """
 
 import gradio as gr
@@ -350,7 +350,7 @@ with gr.Blocks(
     
     # Hidden components for history selection
     selected_history_id = gr.Textbox(visible=False, elem_id="selected_history_id")
-    select_history_btn = gr.Button(visible=False, elem_id="select_history_btn")
+    select_history_btn = gr.Button("Select History", visible=False, elem_id="select_history_btn")
     
     # ===== PAGE COMPONENTS =====
     # Home Page
@@ -363,9 +363,11 @@ with gr.Blocks(
         
         # Tips Section
         with gr.Column(elem_classes="tips-section"):
+            # Horizontal header using Flexbox
             with gr.Row(elem_classes="tips-header"):
-                gr.HTML('<div style="font-size:24px;">💡</div>')
-                gr.HTML('<h3>Tips for Best Results</h3>')
+                gr.HTML('<div style="font-size:24px; flex-shrink:0;">💡</div>')
+                gr.HTML('<h3 style="margin:0; flex:1;">Tips for Best Results</h3>')
+            
             with gr.Column(elem_classes="tips-content"):
                 with gr.Row():
                     gr.HTML('<div class="tip-item"><div class="tip-icon">🌿</div><div class="tip-text">Capture clear, well-lit images of cassava leaves</div></div>')
