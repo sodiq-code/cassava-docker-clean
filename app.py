@@ -1,9 +1,10 @@
 """
-Optimized Cassava Disease Detector - Final Features
-==================================================
-- Fixed history item click functionality
-- Horizontal layout for tips header
-- Improved mobile UI
+Optimized Cassava Disease Detector - Final Mobile Experience
+===========================================================
+- Fixed history display (non-clickable)
+- Perfectly aligned tips section for mobile
+- Native mobile camera implementation
+- Improved UI matching screenshot
 """
 
 import gradio as gr
@@ -15,7 +16,6 @@ from io import BytesIO
 import os
 import cv2
 from datetime import datetime
-import uuid
 
 # Optional imports with fallbacks
 try:
@@ -155,7 +155,7 @@ def create_history_mobile():
     history_content = ""
     for i, item in enumerate(history_log[-10:]):
         history_content += f'''
-        <div class="history-item" onclick="showHistoryItem('{item['id']}')">
+        <div class="history-item">
             <img src="{item["image"]}" alt="Previous analysis" />
             <div class="history-details">
                 <h4>{item["class"]}</h4>
@@ -208,18 +208,13 @@ def predict_image(image):
             return create_alert_mobile("warning", "Low Confidence", f"Prediction confidence: {confidence:.1f}%. Please try with a clearer image.", include_tips=True)
         
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-        result_html = create_result_card_mobile(image, class_name, confidence)
-        
-        # Store with unique ID for history reference
         history_log.append({
-            "id": str(uuid.uuid4()),
             "class": class_name,
             "confidence": round(confidence, 1),
             "image": image_to_base64(image),
-            "timestamp": timestamp,
-            "result_html": result_html
+            "timestamp": timestamp
         })
-        return result_html
+        return create_result_card_mobile(image, class_name, confidence)
     except Exception as e:
         return create_alert_mobile("error", "Processing Error", f"An error occurred: {str(e)}", include_tips=True)
 
@@ -240,13 +235,7 @@ def analyze_camera_image(webcam_image):
         return create_alert_mobile("info", "No Image", "Please capture an image from camera")
     return predict_image(webcam_image)
 
-def find_history_item(history_id):
-    for item in history_log:
-        if item["id"] == history_id:
-            return item["result_html"]
-    return create_alert_mobile("error", "Not Found", "History item not found")
-
-# Enhanced Mobile-Optimized CSS
+# Enhanced Mobile-Optimized CSS with Perfect Tips Alignment
 css = """
 .gradio-container .footer, .gradio-container .built-with, footer, .gr-button-tool, .built-with-gradio, .gradio-container > .built-with, .share-button, .duplicate-button { display: none !important; }
 @media all and (display-mode: standalone) { body { padding-top: env(safe-area-inset-top) !important; padding-bottom: env(safe-area-inset-bottom) !important; } }
@@ -259,10 +248,11 @@ body { height: 100vh; overflow: hidden; }
 .tips-section { background: white; border-radius: 16px; padding: 16px; margin-top: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 .tips-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .tips-header h3 { margin: 0; font-size: 18px; color: #1f2937; }
-.tips-content { display: flex; flex-direction: column; gap: 10px; }
-.tip-item { display: flex; gap: 12px; }
-.tip-icon { font-size: 20px; flex-shrink: 0; }
-.tip-text { font-size: 14px; color: #4b5563; }
+.tips-content { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 480px) { .tips-content { grid-template-columns: 1fr 1fr; } }
+.tip-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; }
+.tip-item::before { content: "•"; color: #16a34a; font-size: 18px; }
+.tip-text { font-size: 14px; color: #4b5563; line-height: 1.4; }
 .btn-upload, .btn-camera, .btn-history { border: none !important; color: white !important; font-weight: 700 !important; padding: 18px 24px !important; border-radius: 16px !important; font-size: 16px !important; transition: all 0.3s ease !important; width: 100% !important; margin-bottom: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 10px !important; }
 .btn-upload { background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important; box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important; }
 .btn-upload:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5) !important; background: linear-gradient(135deg, #2563eb, #1e40af) !important; }
@@ -286,8 +276,7 @@ body { height: 100vh; overflow: hidden; }
 .info-item { background: #f9fafb !important; border: 1px solid #e5e7eb !important; border-radius: 8px !important; padding: 12px !important; }
 .info-label { display: block !important; color: #16a34a !important; font-size: 12px !important; font-weight: 600 !important; text-transform: uppercase !important; margin-bottom: 6px !important; }
 .info-text { color: #1f2937 !important; font-size: 14px !important; line-height: 1.4 !important; display: block !important; }
-.history-item { display: flex !important; gap: 12px !important; padding: 12px 16px !important; border-bottom: 1px solid #e5e7eb !important; align-items: center !important; cursor: pointer; transition: all 0.2s; }
-.history-item:hover { background-color: #f9fafb; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+.history-item { display: flex !important; gap: 12px !important; padding: 12px 16px !important; border-bottom: 1px solid #e5e7eb !important; align-items: center !important; }
 .history-item:last-child { border-bottom: none !important; }
 .history-item img { width: 60px !important; height: 60px !important; object-fit: cover !important; border-radius: 8px !important; border: 1px solid #16a34a !important; flex-shrink: 0 !important; }
 .history-details { flex: 1 !important; min-width: 0 !important; }
@@ -309,9 +298,17 @@ body { height: 100vh; overflow: hidden; }
 .native-camera { border-radius: 12px !important; overflow: hidden !important; border: 2px solid #f59e0b !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; margin-bottom: 12px !important; background: white !important; }
 .native-camera img { width: 100% !important; height: auto !important; max-height: 400px !important; object-fit: cover !important; }
 @keyframes slideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-@media (min-width: 768px) { .gradio-container { padding: 16px !important; } .image-container img { width: 300px !important; height: 300px !important; } .info-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; } .btn-primary, .btn-upload, .btn-camera, .btn-history { width: auto !important; min-width: 200px !important; } .tips-content { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } }
+@media (min-width: 768px) { .gradio-container { padding: 16px !important; } .image-container img { width: 300px !important; height: 300px !important; } .info-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; } .btn-primary, .btn-upload, .btn-camera, .btn-history { width: auto !important; min-width: 200px !important; } }
 @media (min-width: 1024px) { .disease-header { align-items: center !important; } .disease-details h2 { font-size: 20px !important; } .info-grid { grid-template-columns: repeat(3, 1fr) !important; } }
-@supports (-webkit-touch-callout: none) { .mobile-results { -webkit-transform: translateZ(0) !important; } }
+@supports (-webkit-touch-callout: none) { 
+    .mobile-results { -webkit-transform: translateZ(0) !important; } 
+    /* Native Camera Styles */
+    .camera-container { position: relative; width: 100%; height: 70vh; }
+    .camera-view { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
+    .camera-controls { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; }
+    .capture-btn { width: 60px; height: 60px; border-radius: 50%; background: white; border: 4px solid #f59e0b; display: flex; align-items: center; justify-content: center; }
+    .capture-btn-inner { width: 50px; height: 50px; border-radius: 50%; background: #f59e0b; }
+}
 """
 
 # Create Interface
@@ -327,7 +324,7 @@ with gr.Blocks(
 ) as demo:
     demo.queue()
     
-    # Add JavaScript for history item clicks
+    # Native Mobile Camera Implementation
     gr.HTML('''
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -336,9 +333,47 @@ with gr.Blocks(
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="theme-color" content="#16a34a">
         <script>
-            function showHistoryItem(itemId) {
-                document.getElementById("selected_history_id").value = itemId;
-                document.getElementById("select_history_btn").click();
+            // Native mobile camera implementation
+            let cameraStream = null;
+            
+            function startCamera() {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                    .then(function(stream) {
+                        cameraStream = stream;
+                        const video = document.getElementById('camera-view');
+                        video.srcObject = stream;
+                    })
+                    .catch(function(error) {
+                        console.error("Camera error: ", error);
+                    });
+                }
+            }
+            
+            function stopCamera() {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                }
+            }
+            
+            function captureImage() {
+                const video = document.getElementById('camera-view');
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const img = canvas.toDataURL('image/jpeg');
+                document.getElementById('captured-image').value = img;
+                document.getElementById('camera-submit-btn').click();
+                
+                // Stop camera after capture
+                stopCamera();
+            }
+            
+            // Start camera when camera page opens
+            function initCameraPage() {
+                startCamera();
             }
         </script>
     </head>
@@ -347,10 +382,6 @@ with gr.Blocks(
         <p>AI-powered cassava leaf disease detection</p>
     </div>
     ''')
-    
-    # Hidden components for history selection
-    selected_history_id = gr.Textbox(visible=False, elem_id="selected_history_id")
-    select_history_btn = gr.Button("Select History", visible=False, elem_id="select_history_btn")
     
     # ===== PAGE COMPONENTS =====
     # Home Page
@@ -361,20 +392,27 @@ with gr.Blocks(
             camera_btn = gr.Button("📷 Camera Capture", elem_classes=["btn-camera"])
             history_btn = gr.Button("📂 View History", elem_classes=["btn-history"])
         
-        # Tips Section
+        # Tips Section - Perfectly Aligned for Mobile
         with gr.Column(elem_classes="tips-section"):
-            # Horizontal header using Flexbox
             with gr.Row(elem_classes="tips-header"):
-                gr.HTML('<div style="font-size:24px; flex-shrink:0;">💡</div>')
-                gr.HTML('<h3 style="margin:0; flex:1;">Tips for Best Results</h3>')
+                gr.HTML('<div style="font-size:24px;flex-shrink:0;">💡</div>')
+                gr.HTML('<h3 style="margin:0;flex:1;">Tips for Best Results</h3>')
             
             with gr.Column(elem_classes="tips-content"):
-                with gr.Row():
-                    gr.HTML('<div class="tip-item"><div class="tip-icon">🌿</div><div class="tip-text">Capture clear, well-lit images of cassava leaves</div></div>')
-                    gr.HTML('<div class="tip-item"><div class="tip-icon">📱</div><div class="tip-text">Hold your phone steady when taking photos</div></div>')
-                with gr.Row():
-                    gr.HTML('<div class="tip-item"><div class="tip-icon">🔍</div><div class="tip-text">Make sure the leaf fills most of the frame</div></div>')
-                    gr.HTML('<div class="tip-item"><div class="tip-icon">☀️</div><div class="tip-text">Use natural daylight for best accuracy</div></div>')
+                gr.HTML("""
+                <div class="tip-item">
+                    <div class="tip-text">Capture clear, well-lit images of cassava leaves</div>
+                </div>
+                <div class="tip-item">
+                    <div class="tip-text">Hold your phone steady when taking photos</div>
+                </div>
+                <div class="tip-item">
+                    <div class="tip-text">Make sure the leaf fills most of the frame</div>
+                </div>
+                <div class="tip-item">
+                    <div class="tip-text">Use natural daylight for best accuracy</div>
+                </div>
+                """)
     
     # Upload Page
     with gr.Column(visible=False, elem_id="upload_page") as upload_page:
@@ -387,18 +425,24 @@ with gr.Blocks(
         )
         analyze_upload_btn = gr.Button("🔍 Analyze Images", variant="primary", elem_classes=["btn-primary"])
     
-    # Camera Page
+    # Camera Page - Native Mobile Implementation
     with gr.Column(visible=False, elem_id="camera_page") as camera_page:
         back_btn_camera = gr.Button("⬅️ Back to Home", elem_classes=["btn-secondary"])
-        camera_input = gr.Image(
-            label="Camera Capture",
-            sources=["webcam"],
-            type="pil",
-            streaming=False,
-            mirror_webcam=False,
-            elem_classes=["native-camera"]
-        )
-        analyze_camera_btn = gr.Button("🔍 Analyze Image", variant="primary", elem_classes=["btn-primary"])
+        
+        # Native camera container
+        with gr.Column(elem_classes="camera-container"):
+            gr.HTML("""
+            <video id="camera-view" class="camera-view" autoplay playsinline></video>
+            <div class="camera-controls">
+                <div class="capture-btn" onclick="captureImage()">
+                    <div class="capture-btn-inner"></div>
+                </div>
+            </div>
+            """)
+            
+            # Hidden elements for camera capture
+            captured_image = gr.Textbox(visible=False, elem_id="captured-image")
+            camera_submit_btn = gr.Button("Submit Camera", visible=False, elem_id="camera-submit-btn")
     
     # History Page
     with gr.Column(visible=False, elem_id="history_page") as history_page:
@@ -435,6 +479,9 @@ with gr.Blocks(
         ],
         inputs=None,
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
+    ).then(
+        None,
+        _js="initCameraPage"
     )
     
     # Home -> History
@@ -472,7 +519,11 @@ with gr.Blocks(
     )
     
     # Camera -> Results
-    analyze_camera_btn.click(
+    camera_submit_btn.click(
+        lambda img: Image.open(BytesIO(base64.b64decode(img.split(",")[1])) if img else None,
+        inputs=[captured_image],
+        outputs=results_display
+    ).then(
         lambda: [
             gr.Column(visible=False),  # Hide home
             gr.Column(visible=False),  # Hide upload
@@ -482,10 +533,6 @@ with gr.Blocks(
         ],
         inputs=None,
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
-    ).then(
-        analyze_camera_image, 
-        inputs=[camera_input], 
-        outputs=results_display
     )
     
     # Back to Home from Upload
@@ -512,6 +559,9 @@ with gr.Blocks(
         ],
         inputs=None,
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
+    ).then(
+        None,
+        _js="stopCamera"
     )
     
     # Back to Home from History
@@ -538,20 +588,6 @@ with gr.Blocks(
         ],
         inputs=None,
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
-    )
-    
-    # History Item Selection
-    select_history_btn.click(
-        lambda history_id: [
-            find_history_item(history_id),
-            gr.Column(visible=False),  # Hide home
-            gr.Column(visible=False),  # Hide upload
-            gr.Column(visible=False),  # Hide camera
-            gr.Column(visible=False),  # Hide history
-            gr.Column(visible=True)    # Show results
-        ],
-        inputs=[selected_history_id],
-        outputs=[results_display, home_page, upload_page, camera_page, history_page, results_page]
     )
 
 if __name__ == "__main__":
