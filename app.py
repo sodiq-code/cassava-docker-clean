@@ -338,15 +338,25 @@ with gr.Blocks(
             
             function startCamera() {
                 if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                    navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        } 
+                    })
                     .then(function(stream) {
                         cameraStream = stream;
                         const video = document.getElementById('camera-view');
                         video.srcObject = stream;
+                        video.play();
                     })
                     .catch(function(error) {
                         console.error("Camera error: ", error);
+                        alert("Could not access camera: " + error.message);
                     });
+                } else {
+                    alert("Camera API not supported in this browser");
                 }
             }
             
@@ -366,9 +376,6 @@ with gr.Blocks(
                 const img = canvas.toDataURL('image/jpeg');
                 document.getElementById('captured-image').value = img;
                 document.getElementById('camera-submit-btn').click();
-                
-                // Stop camera after capture
-                stopCamera();
             }
             
             // Start camera when camera page opens
@@ -519,8 +526,20 @@ with gr.Blocks(
     )
     
     # Camera -> Results
+    def process_captured_image(img):
+        if img is None:
+            return None
+        # Extract the base64 data
+        base64_data = img.split(",")[1]
+        # Decode the base64 data
+        decoded = base64.b64decode(base64_data)
+        # Create a BytesIO buffer
+        buffer = BytesIO(decoded)
+        # Open as PIL image
+        return Image.open(buffer)
+    
     camera_submit_btn.click(
-        lambda img: Image.open(BytesIO(base64.b64decode(img.split(",")[1])) if img else None,
+        process_captured_image,
         inputs=[captured_image],
         outputs=results_display
     ).then(
