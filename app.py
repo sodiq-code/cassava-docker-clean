@@ -1,9 +1,9 @@
 """
-Optimized Cassava Disease Detector - Working Page Navigation
-===========================================================
-- Fixed page navigation system
-- Vertical buttons on homepage
-- Automatic results display after analysis
+Optimized Cassava Disease Detector - Enhanced Features
+======================================================
+- Clickable history items that show analysis results
+- Tips section on homepage
+- Improved navigation and UI
 """
 
 import gradio as gr
@@ -15,6 +15,7 @@ from io import BytesIO
 import os
 import cv2
 from datetime import datetime
+import uuid
 
 # Optional imports with fallbacks
 try:
@@ -149,11 +150,12 @@ def create_multiple_results_mobile(results_list):
 def create_history_mobile():
     if not history_log:
         return create_alert_mobile("info", "No History", "No previous analyses found")
+    
     header = '<div class="mobile-results"><div class="results-header"><h3>📂 Analysis History</h3><p>Your recent diagnoses</p></div>'
     history_content = ""
-    for item in history_log[-10:]:
+    for i, item in enumerate(history_log[-10:]):
         history_content += f'''
-        <div class="history-item">
+        <div class="history-item" onclick="showHistoryItem('{item['id']}')">
             <img src="{item["image"]}" alt="Previous analysis" />
             <div class="history-details">
                 <h4>{item["class"]}</h4>
@@ -206,13 +208,18 @@ def predict_image(image):
             return create_alert_mobile("warning", "Low Confidence", f"Prediction confidence: {confidence:.1f}%. Please try with a clearer image.", include_tips=True)
         
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+        result_html = create_result_card_mobile(image, class_name, confidence)
+        
+        # Store with unique ID for history reference
         history_log.append({
+            "id": str(uuid.uuid4()),
             "class": class_name,
             "confidence": round(confidence, 1),
             "image": image_to_base64(image),
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "result_html": result_html
         })
-        return create_result_card_mobile(image, class_name, confidence)
+        return result_html
     except Exception as e:
         return create_alert_mobile("error", "Processing Error", f"An error occurred: {str(e)}", include_tips=True)
 
@@ -233,6 +240,12 @@ def analyze_camera_image(webcam_image):
         return create_alert_mobile("info", "No Image", "Please capture an image from camera")
     return predict_image(webcam_image)
 
+def find_history_item(history_id):
+    for item in history_log:
+        if item["id"] == history_id:
+            return item["result_html"]
+    return create_alert_mobile("error", "Not Found", "History item not found")
+
 # Enhanced Mobile-Optimized CSS
 css = """
 .gradio-container .footer, .gradio-container .built-with, footer, .gr-button-tool, .built-with-gradio, .gradio-container > .built-with, .share-button, .duplicate-button { display: none !important; }
@@ -243,6 +256,13 @@ body { height: 100vh; overflow: hidden; }
 .app-header h1 { color: white !important; font-size: clamp(20px, 6vw, 32px) !important; font-weight: 800 !important; margin: 0 !important; text-shadow: 0 2px 4px rgba(0,0,0,0.2) !important; line-height: 1.2 !important; }
 .app-header p { color: rgba(255,255,255,0.95) !important; font-size: clamp(12px, 3.5vw, 16px) !important; margin: 8px 0 0 0 !important; }
 .home-buttons { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+.tips-section { background: white; border-radius: 16px; padding: 16px; margin-top: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.tips-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.tips-header h3 { margin: 0; font-size: 18px; color: #1f2937; }
+.tips-content { display: flex; flex-direction: column; gap: 10px; }
+.tip-item { display: flex; gap: 12px; }
+.tip-icon { font-size: 20px; flex-shrink: 0; }
+.tip-text { font-size: 14px; color: #4b5563; }
 .btn-upload, .btn-camera, .btn-history { border: none !important; color: white !important; font-weight: 700 !important; padding: 18px 24px !important; border-radius: 16px !important; font-size: 16px !important; transition: all 0.3s ease !important; width: 100% !important; margin-bottom: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 10px !important; }
 .btn-upload { background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important; box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important; }
 .btn-upload:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5) !important; background: linear-gradient(135deg, #2563eb, #1e40af) !important; }
@@ -266,7 +286,8 @@ body { height: 100vh; overflow: hidden; }
 .info-item { background: #f9fafb !important; border: 1px solid #e5e7eb !important; border-radius: 8px !important; padding: 12px !important; }
 .info-label { display: block !important; color: #16a34a !important; font-size: 12px !important; font-weight: 600 !important; text-transform: uppercase !important; margin-bottom: 6px !important; }
 .info-text { color: #1f2937 !important; font-size: 14px !important; line-height: 1.4 !important; display: block !important; }
-.history-item { display: flex !important; gap: 12px !important; padding: 12px 16px !important; border-bottom: 1px solid #e5e7eb !important; align-items: center !important; }
+.history-item { display: flex !important; gap: 12px !important; padding: 12px 16px !important; border-bottom: 1px solid #e5e7eb !important; align-items: center !important; cursor: pointer; transition: all 0.2s; }
+.history-item:hover { background-color: #f9fafb; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
 .history-item:last-child { border-bottom: none !important; }
 .history-item img { width: 60px !important; height: 60px !important; object-fit: cover !important; border-radius: 8px !important; border: 1px solid #16a34a !important; flex-shrink: 0 !important; }
 .history-details { flex: 1 !important; min-width: 0 !important; }
@@ -288,7 +309,7 @@ body { height: 100vh; overflow: hidden; }
 .native-camera { border-radius: 12px !important; overflow: hidden !important; border: 2px solid #f59e0b !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; margin-bottom: 12px !important; background: white !important; }
 .native-camera img { width: 100% !important; height: auto !important; max-height: 400px !important; object-fit: cover !important; }
 @keyframes slideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-@media (min-width: 768px) { .gradio-container { padding: 16px !important; } .image-container img { width: 300px !important; height: 300px !important; } .info-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; } .btn-primary, .btn-upload, .btn-camera, .btn-history { width: auto !important; min-width: 200px !important; } }
+@media (min-width: 768px) { .gradio-container { padding: 16px !important; } .image-container img { width: 300px !important; height: 300px !important; } .info-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; } .btn-primary, .btn-upload, .btn-camera, .btn-history { width: auto !important; min-width: 200px !important; } .tips-content { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } }
 @media (min-width: 1024px) { .disease-header { align-items: center !important; } .disease-details h2 { font-size: 20px !important; } .info-grid { grid-template-columns: repeat(3, 1fr) !important; } }
 @supports (-webkit-touch-callout: none) { .mobile-results { -webkit-transform: translateZ(0) !important; } }
 """
@@ -306,6 +327,7 @@ with gr.Blocks(
 ) as demo:
     demo.queue()
     
+    # Add JavaScript for history item clicks
     gr.HTML('''
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -313,12 +335,22 @@ with gr.Blocks(
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="theme-color" content="#16a34a">
+        <script>
+            function showHistoryItem(itemId) {
+                document.getElementById("selected_history_id").value = itemId;
+                document.getElementById("select_history_btn").click();
+            }
+        </script>
     </head>
     <div class="app-header">
         <h1>🌿 CassavaDoc</h1>
         <p>AI-powered cassava leaf disease detection</p>
     </div>
     ''')
+    
+    # Hidden components for history selection
+    selected_history_id = gr.Textbox(visible=False, elem_id="selected_history_id")
+    select_history_btn = gr.Button(visible=False, elem_id="select_history_btn")
     
     # ===== PAGE COMPONENTS =====
     # Home Page
@@ -328,6 +360,19 @@ with gr.Blocks(
             upload_btn = gr.Button("📁 Upload Image", elem_classes=["btn-upload"])
             camera_btn = gr.Button("📷 Camera Capture", elem_classes=["btn-camera"])
             history_btn = gr.Button("📂 View History", elem_classes=["btn-history"])
+        
+        # Tips Section
+        with gr.Column(elem_classes="tips-section"):
+            with gr.Row(elem_classes="tips-header"):
+                gr.HTML('<div style="font-size:24px;">💡</div>')
+                gr.HTML('<h3>Tips for Best Results</h3>')
+            with gr.Column(elem_classes="tips-content"):
+                with gr.Row():
+                    gr.HTML('<div class="tip-item"><div class="tip-icon">🌿</div><div class="tip-text">Capture clear, well-lit images of cassava leaves</div></div>')
+                    gr.HTML('<div class="tip-item"><div class="tip-icon">📱</div><div class="tip-text">Hold your phone steady when taking photos</div></div>')
+                with gr.Row():
+                    gr.HTML('<div class="tip-item"><div class="tip-icon">🔍</div><div class="tip-text">Make sure the leaf fills most of the frame</div></div>')
+                    gr.HTML('<div class="tip-item"><div class="tip-icon">☀️</div><div class="tip-text">Use natural daylight for best accuracy</div></div>')
     
     # Upload Page
     with gr.Column(visible=False, elem_id="upload_page") as upload_page:
@@ -491,6 +536,20 @@ with gr.Blocks(
         ],
         inputs=None,
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
+    )
+    
+    # History Item Selection
+    select_history_btn.click(
+        lambda history_id: [
+            find_history_item(history_id),
+            gr.Column(visible=False),  # Hide home
+            gr.Column(visible=False),  # Hide upload
+            gr.Column(visible=False),  # Hide camera
+            gr.Column(visible=False),  # Hide history
+            gr.Column(visible=True)    # Show results
+        ],
+        inputs=[selected_history_id],
+        outputs=[results_display, home_page, upload_page, camera_page, history_page, results_page]
     )
 
 if __name__ == "__main__":
