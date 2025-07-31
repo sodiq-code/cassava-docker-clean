@@ -228,28 +228,62 @@ css = """
     margin: 0 !important; 
 }
 
-/* Tabs */
+/* Mobile-First Vertical Navigation */
 .tab-nav { 
     background: white !important; 
-    border-radius: 12px !important; 
-    padding: 4px !important; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important; 
-    margin-bottom: 20px !important; 
+    border-radius: 16px !important; 
+    padding: 12px !important; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important; 
+    margin-bottom: 16px !important; 
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
 }
 .tab-nav button { 
     border: none !important; 
-    background: transparent !important; 
+    background: #f8fafc !important; 
     color: #6b7280 !important; 
-    padding: 12px 20px !important; 
-    border-radius: 8px !important; 
+    padding: 16px 20px !important; 
+    border-radius: 12px !important; 
     font-weight: 600 !important; 
+    font-size: 16px !important;
     transition: all 0.3s ease !important; 
-    flex: 1 !important; 
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    border: 2px solid transparent !important;
+}
+.tab-nav button:hover { 
+    background: #f1f5f9 !important; 
+    color: #16a34a !important; 
+    border-color: #16a34a20 !important;
+    transform: translateX(4px) !important;
 }
 .tab-nav button.selected { 
     background: linear-gradient(135deg, #16a34a, #22c55e) !important; 
     color: white !important; 
-    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3) !important; 
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3) !important; 
+    border-color: #16a34a !important;
+    transform: translateX(8px) !important;
+}
+
+/* Responsive: Horizontal on larger screens */
+@media (min-width: 768px) {
+    .tab-nav { 
+        flex-direction: row !important; 
+        gap: 6px !important;
+        padding: 6px !important;
+    }
+    .tab-nav button { 
+        flex: 1 !important; 
+        text-align: center !important;
+        padding: 14px 16px !important;
+    }
+    .tab-nav button:hover,
+    .tab-nav button.selected { 
+        transform: translateY(-2px) !important; 
+    }
 }
 
 /* Page Containers */
@@ -568,13 +602,13 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue=gr.themes.colors.green, secondar
             result = predict_image(Image.open(files[0]))
         else:
             result = analyze_multiple([Image.open(f) for f in files])
-        return result, gr.update(selected=2)
+        return result, gr.Tabs(selected=2)
     
     def handle_camera_analysis(image):
         if not image:
             return create_alert("info", "No Image", "Please capture an image"), gr.update(selected=2)
         result = predict_image(image)
-        return result, gr.update(selected=2)
+        return result, gr.Tabs(selected=2)
     
     def refresh_history():
         return create_history_view()
@@ -592,4 +626,4 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue=gr.themes.colors.green, secondar
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7860))
-    demo.launch(server_name="0.0.0.0", server_port=port)
+    demo.launch(server_name="0.0.0.0", server_port=port, show_api=False, inbrowser=True, quiet=True)
