@@ -1,9 +1,9 @@
 """
-Optimized Cassava Disease Detector - Page-Based Navigation
-==========================================================
-- Separate pages for Upload, Camera, History, and Results
-- Automatic transition to results after analysis
-- Mobile-first responsive design
+Optimized Cassava Disease Detector - Working Page Navigation
+===========================================================
+- Fixed page navigation system
+- Vertical buttons on homepage
+- Automatic results display after analysis
 """
 
 import gradio as gr
@@ -242,7 +242,8 @@ body { height: 100vh; overflow: hidden; }
 .app-header { background: linear-gradient(135deg, #16a34a, #22c55e) !important; border-radius: 16px !important; padding: 20px 16px !important; text-align: center !important; margin-bottom: 16px !important; box-shadow: 0 8px 25px rgba(22, 163, 74, 0.2) !important; }
 .app-header h1 { color: white !important; font-size: clamp(20px, 6vw, 32px) !important; font-weight: 800 !important; margin: 0 !important; text-shadow: 0 2px 4px rgba(0,0,0,0.2) !important; line-height: 1.2 !important; }
 .app-header p { color: rgba(255,255,255,0.95) !important; font-size: clamp(12px, 3.5vw, 16px) !important; margin: 8px 0 0 0 !important; }
-.btn-upload, .btn-camera, .btn-history { border: none !important; color: white !important; font-weight: 700 !important; padding: 18px 24px !important; border-radius: 16px !important; font-size: 16px !important; transition: all 0.3s ease !important; width: 100% !important; margin-bottom: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 10px !important; }
+.home-buttons { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+.btn-upload, .btn-camera, .btn-history { border: none !important; color: white !important; font-weight: 700 !important; padding: 18px 24px !important; border-radius: 16px !important; font-size: 16px !important; transition: all 0.3s ease !important; width: 100% !important; margin-bottom: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 10px !important; }
 .btn-upload { background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important; box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important; }
 .btn-upload:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5) !important; background: linear-gradient(135deg, #2563eb, #1e40af) !important; }
 .btn-camera { background: linear-gradient(135deg, #f59e0b, #d97706) !important; box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4) !important; }
@@ -321,14 +322,15 @@ with gr.Blocks(
     
     # ===== PAGE COMPONENTS =====
     # Home Page
-    with gr.Column(visible=True) as home_page:
+    with gr.Column(visible=True, elem_id="home_page") as home_page:
         gr.HTML('<h2 style="text-align:center;margin-bottom:24px;">Select Analysis Method</h2>')
-        upload_btn = gr.Button("📁 Upload Image", elem_classes=["btn-upload"])
-        camera_btn = gr.Button("📷 Camera Capture", elem_classes=["btn-camera"])
-        history_btn = gr.Button("📂 View History", elem_classes=["btn-history"])
+        with gr.Column(elem_classes="home-buttons"):
+            upload_btn = gr.Button("📁 Upload Image", elem_classes=["btn-upload"])
+            camera_btn = gr.Button("📷 Camera Capture", elem_classes=["btn-camera"])
+            history_btn = gr.Button("📂 View History", elem_classes=["btn-history"])
     
     # Upload Page
-    with gr.Column(visible=False) as upload_page:
+    with gr.Column(visible=False, elem_id="upload_page") as upload_page:
         back_btn_upload = gr.Button("⬅️ Back to Home", elem_classes=["btn-secondary"])
         file_input = gr.File(
             label="Upload Cassava Leaf Images",
@@ -339,7 +341,7 @@ with gr.Blocks(
         analyze_upload_btn = gr.Button("🔍 Analyze Images", variant="primary", elem_classes=["btn-primary"])
     
     # Camera Page
-    with gr.Column(visible=False) as camera_page:
+    with gr.Column(visible=False, elem_id="camera_page") as camera_page:
         back_btn_camera = gr.Button("⬅️ Back to Home", elem_classes=["btn-secondary"])
         camera_input = gr.Image(
             label="Camera Capture",
@@ -352,47 +354,53 @@ with gr.Blocks(
         analyze_camera_btn = gr.Button("🔍 Analyze Image", variant="primary", elem_classes=["btn-primary"])
     
     # History Page
-    with gr.Column(visible=False) as history_page:
+    with gr.Column(visible=False, elem_id="history_page") as history_page:
         back_btn_history = gr.Button("⬅️ Back to Home", elem_classes=["btn-secondary"])
         history_display = gr.HTML(create_history_mobile())
     
     # Results Page
-    with gr.Column(visible=False) as results_page:
+    with gr.Column(visible=False, elem_id="results_page") as results_page:
         back_btn_results = gr.Button("⬅️ Back to Home", elem_classes=["btn-secondary"])
         results_display = gr.HTML(create_default_mobile())
     
     # ===== PAGE NAVIGATION =====
     # Home -> Upload
     upload_btn.click(
-        lambda: (gr.Column(visible=False), 
-        inputs=None, 
-        outputs=home_page
-    ).then(
-        lambda: gr.Column(visible=True), 
-        inputs=None, 
-        outputs=upload_page
+        lambda: [
+            gr.Column(visible=False),  # Hide home
+            gr.Column(visible=True),   # Show upload
+            gr.Column(visible=False),  # Hide camera
+            gr.Column(visible=False),  # Hide history
+            gr.Column(visible=False)   # Hide results
+        ],
+        inputs=None,
+        outputs=[home_page, upload_page, camera_page, history_page, results_page]
     )
     
     # Home -> Camera
     camera_btn.click(
-        lambda: (gr.Column(visible=False)), 
-        inputs=None, 
-        outputs=home_page
-    ).then(
-        lambda: gr.Column(visible=True), 
-        inputs=None, 
-        outputs=camera_page
+        lambda: [
+            gr.Column(visible=False),  # Hide home
+            gr.Column(visible=False),  # Hide upload
+            gr.Column(visible=True),   # Show camera
+            gr.Column(visible=False),  # Hide history
+            gr.Column(visible=False)   # Hide results
+        ],
+        inputs=None,
+        outputs=[home_page, upload_page, camera_page, history_page, results_page]
     )
     
     # Home -> History
     history_btn.click(
-        lambda: (gr.Column(visible=False)), 
-        inputs=None, 
-        outputs=home_page
-    ).then(
-        lambda: gr.Column(visible=True), 
-        inputs=None, 
-        outputs=history_page
+        lambda: [
+            gr.Column(visible=False),  # Hide home
+            gr.Column(visible=False),  # Hide upload
+            gr.Column(visible=False),  # Hide camera
+            gr.Column(visible=True),   # Show history
+            gr.Column(visible=False)   # Hide results
+        ],
+        inputs=None,
+        outputs=[home_page, upload_page, camera_page, history_page, results_page]
     ).then(
         create_history_mobile, 
         inputs=None, 
@@ -401,13 +409,15 @@ with gr.Blocks(
     
     # Upload -> Results
     analyze_upload_btn.click(
-        lambda: (gr.Column(visible=False)), 
-        inputs=None, 
-        outputs=upload_page
-    ).then(
-        lambda: gr.Column(visible=True), 
-        inputs=None, 
-        outputs=results_page
+        lambda: [
+            gr.Column(visible=False),  # Hide home
+            gr.Column(visible=False),  # Hide upload
+            gr.Column(visible=False),  # Hide camera
+            gr.Column(visible=False),  # Hide history
+            gr.Column(visible=True)    # Show results
+        ],
+        inputs=None,
+        outputs=[home_page, upload_page, camera_page, history_page, results_page]
     ).then(
         analyze_uploaded_images, 
         inputs=[file_input], 
@@ -416,13 +426,15 @@ with gr.Blocks(
     
     # Camera -> Results
     analyze_camera_btn.click(
-        lambda: (gr.Column(visible=False)), 
-        inputs=None, 
-        outputs=camera_page
-    ).then(
-        lambda: gr.Column(visible=True), 
-        inputs=None, 
-        outputs=results_page
+        lambda: [
+            gr.Column(visible=False),  # Hide home
+            gr.Column(visible=False),  # Hide upload
+            gr.Column(visible=False),  # Hide camera
+            gr.Column(visible=False),  # Hide history
+            gr.Column(visible=True)    # Show results
+        ],
+        inputs=None,
+        outputs=[home_page, upload_page, camera_page, history_page, results_page]
     ).then(
         analyze_camera_image, 
         inputs=[camera_input], 
@@ -431,46 +443,54 @@ with gr.Blocks(
     
     # Back to Home from Upload
     back_btn_upload.click(
-        lambda: (gr.Column(visible=False)), 
-        inputs=None, 
-        outputs=upload_page
-    ).then(
-        lambda: gr.Column(visible=True)), 
-        inputs=None, 
-        outputs=home_page
+        lambda: [
+            gr.Column(visible=True),   # Show home
+            gr.Column(visible=False),  # Hide upload
+            gr.Column(visible=False),  # Hide camera
+            gr.Column(visible=False),  # Hide history
+            gr.Column(visible=False)   # Hide results
+        ],
+        inputs=None,
+        outputs=[home_page, upload_page, camera_page, history_page, results_page]
     )
     
     # Back to Home from Camera
     back_btn_camera.click(
-        lambda: (gr.Column(visible=False)), 
-        inputs=None, 
-        outputs=camera_page
-    ).then(
-        lambda: gr.Column(visible=True)), 
-        inputs=None, 
-        outputs=home_page
+        lambda: [
+            gr.Column(visible=True),   # Show home
+            gr.Column(visible=False),  # Hide upload
+            gr.Column(visible=False),  # Hide camera
+            gr.Column(visible=False),  # Hide history
+            gr.Column(visible=False)   # Hide results
+        ],
+        inputs=None,
+        outputs=[home_page, upload_page, camera_page, history_page, results_page]
     )
     
     # Back to Home from History
     back_btn_history.click(
-        lambda: (gr.Column(visible=False)), 
-        inputs=None, 
-        outputs=history_page
-    ).then(
-        lambda: gr.Column(visible=True)), 
-        inputs=None, 
-        outputs=home_page
+        lambda: [
+            gr.Column(visible=True),   # Show home
+            gr.Column(visible=False),  # Hide upload
+            gr.Column(visible=False),  # Hide camera
+            gr.Column(visible=False),  # Hide history
+            gr.Column(visible=False)   # Hide results
+        ],
+        inputs=None,
+        outputs=[home_page, upload_page, camera_page, history_page, results_page]
     )
     
     # Back to Home from Results
     back_btn_results.click(
-        lambda: (gr.Column(visible=False)), 
-        inputs=None, 
-        outputs=results_page
-    ).then(
-        lambda: gr.Column(visible=True)), 
-        inputs=None, 
-        outputs=home_page
+        lambda: [
+            gr.Column(visible=True),   # Show home
+            gr.Column(visible=False),  # Hide upload
+            gr.Column(visible=False),  # Hide camera
+            gr.Column(visible=False),  # Hide history
+            gr.Column(visible=False)   # Hide results
+        ],
+        inputs=None,
+        outputs=[home_page, upload_page, camera_page, history_page, results_page]
     )
 
 if __name__ == "__main__":
