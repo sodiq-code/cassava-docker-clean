@@ -346,9 +346,12 @@ with gr.Blocks(
         # Tips Section
         with gr.Column(elem_classes="tips-section"):
             # Horizontal header using Flexbox
-            with gr.Row(elem_classes="tips-header"):
-                gr.HTML('<div style="font-size:24px; flex-shrink:0;">💡</div>')
-                gr.HTML('<h3 style="margin:0; text-align:right;">Tips for Best Results</h3>')
+            gr.HTML('''
+                    <div class="tips-header" style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                        <span style="font-size:24px;">💡</span>
+                        <h3 style="margin:0;">Tips for Best Results</h3>
+                    </div>
+                    ''')
             
             with gr.Column(elem_classes="tips-content"):
                 # Bullet tips remain the same
