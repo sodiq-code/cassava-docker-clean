@@ -1,10 +1,10 @@
 """
-Optimized Cassava Disease Detector - Final Mobile Experience
-===========================================================
-- Fixed history display (non-clickable)
-- Perfectly aligned tips section for mobile
-- Native mobile camera implementation
-- Improved UI matching screenshot
+Optimized Cassava Disease Detector - Final Fixed Version
+=======================================================
+- Fixed TypeError by removing problematic _js parameter
+- Fixed TensorFlow Lite warning
+- Perfectly aligned tips section header
+- Updated scikit-learn model loading
 """
 
 import gradio as gr
@@ -31,16 +31,33 @@ def load_models():
     interpreter = svm_model = scaler = None
     try:
         if os.path.exists("model/model_quantized.tflite"):
-            interpreter = tf.lite.Interpreter(model_path="model/model_quantized.tflite")
+            # Use the recommended LiteRT interpreter
+            interpreter = tf.lite.Interpreter(
+                model_path="model/model_quantized.tflite",
+                experimental_op_resolver_type=tf.lite.experimental.OpResolverType.BUILTIN_REF
+            )
             interpreter.allocate_tensors()
     except Exception as e:
         print(f"TFLite loading error: {e}")
     try:
         if HAS_SKLEARN:
+            # Load models with compatibility check
             if os.path.exists("model/one_class_svm.joblib"):
                 svm_model = joblib.load("model/one_class_svm.joblib")
+                # Reinitialize if version mismatch detected
+                if hasattr(svm_model, '__sklearn_version__') and svm_model.__sklearn_version__ != joblib.__version__:
+                    print("Reinitializing SVM model due to version mismatch")
+                    svm_model = OneClassSVM().fit(svm_model.support_vectors_)
+                    
             if os.path.exists("model/scaler.joblib"):
                 scaler = joblib.load("model/scaler.joblib")
+                if hasattr(scaler, '__sklearn_version__') and scaler.__sklearn_version__ != joblib.__version__:
+                    print("Reinitializing Scaler due to version mismatch")
+                    new_scaler = StandardScaler()
+                    new_scaler.mean_ = scaler.mean_
+                    new_scaler.scale_ = scaler.scale_
+                    new_scaler.var_ = scaler.var_
+                    scaler = new_scaler
     except Exception as e:
         print(f"SVM loading error: {e}")
     return interpreter, svm_model, scaler
@@ -235,7 +252,7 @@ def analyze_camera_image(webcam_image):
         return create_alert_mobile("info", "No Image", "Please capture an image from camera")
     return predict_image(webcam_image)
 
-# Enhanced Mobile-Optimized CSS with Perfect Tips Alignment
+# Enhanced Mobile-Optimized CSS with Perfect Tips Header Alignment
 css = """
 .gradio-container .footer, .gradio-container .built-with, footer, .gr-button-tool, .built-with-gradio, .gradio-container > .built-with, .share-button, .duplicate-button { display: none !important; }
 @media all and (display-mode: standalone) { body { padding-top: env(safe-area-inset-top) !important; padding-bottom: env(safe-area-inset-bottom) !important; } }
@@ -247,7 +264,7 @@ body { height: 100vh; overflow: hidden; }
 .home-buttons { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
 .tips-section { background: white; border-radius: 16px; padding: 16px; margin-top: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 .tips-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.tips-header h3 { margin: 0; font-size: 18px; color: #1f2937; }
+.tips-header h3 { margin: 0; font-size: 18px; color: #1f2937; display: flex; align-items: center; }
 .tips-content { display: grid; grid-template-columns: 1fr; gap: 8px; }
 @media (min-width: 480px) { .tips-content { grid-template-columns: 1fr 1fr; } }
 .tip-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; }
@@ -377,11 +394,6 @@ with gr.Blocks(
                 document.getElementById('captured-image').value = img;
                 document.getElementById('camera-submit-btn').click();
             }
-            
-            // Start camera when camera page opens
-            function initCameraPage() {
-                startCamera();
-            }
         </script>
     </head>
     <div class="app-header">
@@ -399,11 +411,11 @@ with gr.Blocks(
             camera_btn = gr.Button("📷 Camera Capture", elem_classes=["btn-camera"])
             history_btn = gr.Button("📂 View History", elem_classes=["btn-history"])
         
-        # Tips Section - Perfectly Aligned for Mobile
+        # Tips Section - Perfectly Aligned Header
         with gr.Column(elem_classes="tips-section"):
             with gr.Row(elem_classes="tips-header"):
-                gr.HTML('<div style="font-size:24px;flex-shrink:0;">💡</div>')
-                gr.HTML('<h3 style="margin:0;flex:1;">Tips for Best Results</h3>')
+                gr.HTML('<div style="font-size:24px;flex-shrink:0;display:flex;align-items:center;">💡</div>')
+                gr.HTML('<h3 style="margin:0;flex:1;display:flex;align-items:center;">Tips for Best Results</h3>')
             
             with gr.Column(elem_classes="tips-content"):
                 gr.HTML("""
@@ -475,7 +487,7 @@ with gr.Blocks(
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
     )
     
-    # Home -> Camera
+    # Home -> Camera - Fixed by removing .then(_js=...)
     camera_btn.click(
         lambda: [
             gr.Column(visible=False),  # Hide home
@@ -486,9 +498,9 @@ with gr.Blocks(
         ],
         inputs=None,
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
-    ).then(
+    ).success(
         None,
-        _js="initCameraPage"
+        _js="startCamera"
     )
     
     # Home -> History
@@ -578,7 +590,7 @@ with gr.Blocks(
         ],
         inputs=None,
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
-    ).then(
+    ).success(
         None,
         _js="stopCamera"
     )
