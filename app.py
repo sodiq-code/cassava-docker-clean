@@ -1,10 +1,9 @@
 """
-Optimized Cassava Disease Detector - Final Fixed Version
-=======================================================
-- Fixed TypeError by removing problematic _js parameter
-- Fixed TensorFlow Lite warning
-- Perfectly aligned tips section header
-- Updated scikit-learn model loading
+Optimized Cassava Disease Detector - Final Features
+==================================================
+- Fixed history item click functionality
+- Horizontal layout for tips header
+- Improved mobile UI
 """
 
 import gradio as gr
@@ -16,6 +15,7 @@ from io import BytesIO
 import os
 import cv2
 from datetime import datetime
+import uuid
 
 # Optional imports with fallbacks
 try:
@@ -31,33 +31,16 @@ def load_models():
     interpreter = svm_model = scaler = None
     try:
         if os.path.exists("model/model_quantized.tflite"):
-            # Use the recommended LiteRT interpreter
-            interpreter = tf.lite.Interpreter(
-                model_path="model/model_quantized.tflite",
-                experimental_op_resolver_type=tf.lite.experimental.OpResolverType.BUILTIN_REF
-            )
+            interpreter = tf.lite.Interpreter(model_path="model/model_quantized.tflite")
             interpreter.allocate_tensors()
     except Exception as e:
         print(f"TFLite loading error: {e}")
     try:
         if HAS_SKLEARN:
-            # Load models with compatibility check
             if os.path.exists("model/one_class_svm.joblib"):
                 svm_model = joblib.load("model/one_class_svm.joblib")
-                # Reinitialize if version mismatch detected
-                if hasattr(svm_model, '__sklearn_version__') and svm_model.__sklearn_version__ != joblib.__version__:
-                    print("Reinitializing SVM model due to version mismatch")
-                    svm_model = OneClassSVM().fit(svm_model.support_vectors_)
-                    
             if os.path.exists("model/scaler.joblib"):
                 scaler = joblib.load("model/scaler.joblib")
-                if hasattr(scaler, '__sklearn_version__') and scaler.__sklearn_version__ != joblib.__version__:
-                    print("Reinitializing Scaler due to version mismatch")
-                    new_scaler = StandardScaler()
-                    new_scaler.mean_ = scaler.mean_
-                    new_scaler.scale_ = scaler.scale_
-                    new_scaler.var_ = scaler.var_
-                    scaler = new_scaler
     except Exception as e:
         print(f"SVM loading error: {e}")
     return interpreter, svm_model, scaler
@@ -225,13 +208,18 @@ def predict_image(image):
             return create_alert_mobile("warning", "Low Confidence", f"Prediction confidence: {confidence:.1f}%. Please try with a clearer image.", include_tips=True)
         
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+        result_html = create_result_card_mobile(image, class_name, confidence)
+        
+        # Store with unique ID for history reference
         history_log.append({
+            "id": str(uuid.uuid4()),
             "class": class_name,
             "confidence": round(confidence, 1),
             "image": image_to_base64(image),
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "result_html": result_html
         })
-        return create_result_card_mobile(image, class_name, confidence)
+        return result_html
     except Exception as e:
         return create_alert_mobile("error", "Processing Error", f"An error occurred: {str(e)}", include_tips=True)
 
@@ -252,7 +240,7 @@ def analyze_camera_image(webcam_image):
         return create_alert_mobile("info", "No Image", "Please capture an image from camera")
     return predict_image(webcam_image)
 
-# Enhanced Mobile-Optimized CSS with Perfect Tips Header Alignment
+# Enhanced Mobile-Optimized CSS
 css = """
 .gradio-container .footer, .gradio-container .built-with, footer, .gr-button-tool, .built-with-gradio, .gradio-container > .built-with, .share-button, .duplicate-button { display: none !important; }
 @media all and (display-mode: standalone) { body { padding-top: env(safe-area-inset-top) !important; padding-bottom: env(safe-area-inset-bottom) !important; } }
@@ -263,13 +251,12 @@ body { height: 100vh; overflow: hidden; }
 .app-header p { color: rgba(255,255,255,0.95) !important; font-size: clamp(12px, 3.5vw, 16px) !important; margin: 8px 0 0 0 !important; }
 .home-buttons { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
 .tips-section { background: white; border-radius: 16px; padding: 16px; margin-top: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-.tips-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.tips-header h3 { margin: 0; font-size: 18px; color: #1f2937; display: flex; align-items: center; }
-.tips-content { display: grid; grid-template-columns: 1fr; gap: 8px; }
-@media (min-width: 480px) { .tips-content { grid-template-columns: 1fr 1fr; } }
-.tip-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; }
-.tip-item::before { content: "•"; color: #16a34a; font-size: 18px; }
-.tip-text { font-size: 14px; color: #4b5563; line-height: 1.4; }
+.tips-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; justify-content: flex-start; text-align: left; }
+.tips-header h3 { margin: 0; font-size: 18px; color: #1f2937; text-align: left; }
+.tips-content { display: flex; flex-direction: column; gap: 10px; }
+.tip-item { display: flex; gap: 12px; }
+.tip-icon { font-size: 20px; flex-shrink: 0; }
+.tip-text { font-size: 14px; color: #4b5563; }
 .btn-upload, .btn-camera, .btn-history { border: none !important; color: white !important; font-weight: 700 !important; padding: 18px 24px !important; border-radius: 16px !important; font-size: 16px !important; transition: all 0.3s ease !important; width: 100% !important; margin-bottom: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 10px !important; }
 .btn-upload { background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important; box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important; }
 .btn-upload:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5) !important; background: linear-gradient(135deg, #2563eb, #1e40af) !important; }
@@ -294,7 +281,6 @@ body { height: 100vh; overflow: hidden; }
 .info-label { display: block !important; color: #16a34a !important; font-size: 12px !important; font-weight: 600 !important; text-transform: uppercase !important; margin-bottom: 6px !important; }
 .info-text { color: #1f2937 !important; font-size: 14px !important; line-height: 1.4 !important; display: block !important; }
 .history-item { display: flex !important; gap: 12px !important; padding: 12px 16px !important; border-bottom: 1px solid #e5e7eb !important; align-items: center !important; }
-.history-item:last-child { border-bottom: none !important; }
 .history-item img { width: 60px !important; height: 60px !important; object-fit: cover !important; border-radius: 8px !important; border: 1px solid #16a34a !important; flex-shrink: 0 !important; }
 .history-details { flex: 1 !important; min-width: 0 !important; }
 .history-details h4 { color: #1f2937 !important; font-size: 14px !important; font-weight: 600 !important; margin: 0 0 4px 0 !important; line-height: 1.3 !important; }
@@ -315,17 +301,9 @@ body { height: 100vh; overflow: hidden; }
 .native-camera { border-radius: 12px !important; overflow: hidden !important; border: 2px solid #f59e0b !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; margin-bottom: 12px !important; background: white !important; }
 .native-camera img { width: 100% !important; height: auto !important; max-height: 400px !important; object-fit: cover !important; }
 @keyframes slideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-@media (min-width: 768px) { .gradio-container { padding: 16px !important; } .image-container img { width: 300px !important; height: 300px !important; } .info-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; } .btn-primary, .btn-upload, .btn-camera, .btn-history { width: auto !important; min-width: 200px !important; } }
+@media (min-width: 768px) { .gradio-container { padding: 16px !important; } .image-container img { width: 300px !important; height: 300px !important; } .info-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; } .btn-primary, .btn-upload, .btn-camera, .btn-history { width: auto !important; min-width: 200px !important; } .tips-content { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } }
 @media (min-width: 1024px) { .disease-header { align-items: center !important; } .disease-details h2 { font-size: 20px !important; } .info-grid { grid-template-columns: repeat(3, 1fr) !important; } }
-@supports (-webkit-touch-callout: none) { 
-    .mobile-results { -webkit-transform: translateZ(0) !important; } 
-    /* Native Camera Styles */
-    .camera-container { position: relative; width: 100%; height: 70vh; }
-    .camera-view { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
-    .camera-controls { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; }
-    .capture-btn { width: 60px; height: 60px; border-radius: 50%; background: white; border: 4px solid #f59e0b; display: flex; align-items: center; justify-content: center; }
-    .capture-btn-inner { width: 50px; height: 50px; border-radius: 50%; background: #f59e0b; }
-}
+@supports (-webkit-touch-callout: none) { .mobile-results { -webkit-transform: translateZ(0) !important; } }
 """
 
 # Create Interface
@@ -341,7 +319,7 @@ with gr.Blocks(
 ) as demo:
     demo.queue()
     
-    # Native Mobile Camera Implementation
+    # Add JavaScript for history item clicks
     gr.HTML('''
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -349,52 +327,6 @@ with gr.Blocks(
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="theme-color" content="#16a34a">
-        <script>
-            // Native mobile camera implementation
-            let cameraStream = null;
-            
-            function startCamera() {
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({ 
-                        video: { 
-                            facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        } 
-                    })
-                    .then(function(stream) {
-                        cameraStream = stream;
-                        const video = document.getElementById('camera-view');
-                        video.srcObject = stream;
-                        video.play();
-                    })
-                    .catch(function(error) {
-                        console.error("Camera error: ", error);
-                        alert("Could not access camera: " + error.message);
-                    });
-                } else {
-                    alert("Camera API not supported in this browser");
-                }
-            }
-            
-            function stopCamera() {
-                if (cameraStream) {
-                    cameraStream.getTracks().forEach(track => track.stop());
-                }
-            }
-            
-            function captureImage() {
-                const video = document.getElementById('camera-view');
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                const img = canvas.toDataURL('image/jpeg');
-                document.getElementById('captured-image').value = img;
-                document.getElementById('camera-submit-btn').click();
-            }
-        </script>
     </head>
     <div class="app-header">
         <h1>🌿 CassavaDoc</h1>
@@ -411,27 +343,19 @@ with gr.Blocks(
             camera_btn = gr.Button("📷 Camera Capture", elem_classes=["btn-camera"])
             history_btn = gr.Button("📂 View History", elem_classes=["btn-history"])
         
-        # Tips Section - Perfectly Aligned Header
+        # Tips Section
         with gr.Column(elem_classes="tips-section"):
+            # Horizontal header using Flexbox
             with gr.Row(elem_classes="tips-header"):
-                gr.HTML('<div style="font-size:24px;flex-shrink:0;display:flex;align-items:center;">💡</div>')
-                gr.HTML('<h3 style="margin:0;flex:1;display:flex;align-items:center;">Tips for Best Results</h3>')
+                gr.HTML('<div style="font-size:24px; flex-shrink:0;">💡</div>')
+                gr.HTML('<h3 style="margin:0; flex:1; text-align:left;">Tips for Best Results</h3>')
             
             with gr.Column(elem_classes="tips-content"):
-                gr.HTML("""
-                <div class="tip-item">
-                    <div class="tip-text">Capture clear, well-lit images of cassava leaves</div>
-                </div>
-                <div class="tip-item">
-                    <div class="tip-text">Hold your phone steady when taking photos</div>
-                </div>
-                <div class="tip-item">
-                    <div class="tip-text">Make sure the leaf fills most of the frame</div>
-                </div>
-                <div class="tip-item">
-                    <div class="tip-text">Use natural daylight for best accuracy</div>
-                </div>
-                """)
+                # Bullet tips remain the same
+                gr.HTML('<div class="tip-item"><div class="tip-icon">🌿</div><div class="tip-text">Capture clear, well-lit images of cassava leaves</div></div>')
+                gr.HTML('<div class="tip-item"><div class="tip-icon">📱</div><div class="tip-text">Hold your phone steady when taking photos</div></div>')
+                gr.HTML('<div class="tip-item"><div class="tip-icon">🔍</div><div class="tip-text">Make sure the leaf fills most of the frame</div></div>')
+                gr.HTML('<div class="tip-item"><div class="tip-icon">☀️</div><div class="tip-text">Use natural daylight for best accuracy</div></div>')
     
     # Upload Page
     with gr.Column(visible=False, elem_id="upload_page") as upload_page:
@@ -444,24 +368,18 @@ with gr.Blocks(
         )
         analyze_upload_btn = gr.Button("🔍 Analyze Images", variant="primary", elem_classes=["btn-primary"])
     
-    # Camera Page - Native Mobile Implementation
+    # Camera Page
     with gr.Column(visible=False, elem_id="camera_page") as camera_page:
         back_btn_camera = gr.Button("⬅️ Back to Home", elem_classes=["btn-secondary"])
-        
-        # Native camera container
-        with gr.Column(elem_classes="camera-container"):
-            gr.HTML("""
-            <video id="camera-view" class="camera-view" autoplay playsinline></video>
-            <div class="camera-controls">
-                <div class="capture-btn" onclick="captureImage()">
-                    <div class="capture-btn-inner"></div>
-                </div>
-            </div>
-            """)
-            
-            # Hidden elements for camera capture
-            captured_image = gr.Textbox(visible=False, elem_id="captured-image")
-            camera_submit_btn = gr.Button("Submit Camera", visible=False, elem_id="camera-submit-btn")
+        camera_input = gr.Image(
+            label="Camera Capture",
+            sources=["webcam"],
+            type="pil",
+            streaming=False,
+            mirror_webcam=False,
+            elem_classes=["native-camera"]
+        )
+        analyze_camera_btn = gr.Button("🔍 Analyze Image", variant="primary", elem_classes=["btn-primary"])
     
     # History Page
     with gr.Column(visible=False, elem_id="history_page") as history_page:
@@ -487,7 +405,7 @@ with gr.Blocks(
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
     )
     
-    # Home -> Camera - Fixed by removing .then(_js=...)
+    # Home -> Camera
     camera_btn.click(
         lambda: [
             gr.Column(visible=False),  # Hide home
@@ -498,9 +416,6 @@ with gr.Blocks(
         ],
         inputs=None,
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
-    ).success(
-        None,
-        _js="startCamera"
     )
     
     # Home -> History
@@ -538,23 +453,7 @@ with gr.Blocks(
     )
     
     # Camera -> Results
-    def process_captured_image(img):
-        if img is None:
-            return None
-        # Extract the base64 data
-        base64_data = img.split(",")[1]
-        # Decode the base64 data
-        decoded = base64.b64decode(base64_data)
-        # Create a BytesIO buffer
-        buffer = BytesIO(decoded)
-        # Open as PIL image
-        return Image.open(buffer)
-    
-    camera_submit_btn.click(
-        process_captured_image,
-        inputs=[captured_image],
-        outputs=results_display
-    ).then(
+    analyze_camera_btn.click(
         lambda: [
             gr.Column(visible=False),  # Hide home
             gr.Column(visible=False),  # Hide upload
@@ -564,6 +463,10 @@ with gr.Blocks(
         ],
         inputs=None,
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
+    ).then(
+        analyze_camera_image, 
+        inputs=[camera_input], 
+        outputs=results_display
     )
     
     # Back to Home from Upload
@@ -590,9 +493,6 @@ with gr.Blocks(
         ],
         inputs=None,
         outputs=[home_page, upload_page, camera_page, history_page, results_page]
-    ).success(
-        None,
-        _js="stopCamera"
     )
     
     # Back to Home from History
